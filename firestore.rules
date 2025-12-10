@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow public read access to posts
+    match /posts/{document} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
+    // Allow public read access to users
+    match /users/{document} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == document;
+      allow update: if request.auth != null && request.auth.uid == document;
+      allow delete: if request.auth != null && request.auth.uid == document;
+    }
+    
+    // Messages - only accessible by sender or recipient
+    match /messages/{document} {
+      allow read, write: if request.auth != null && 
+        (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.recipientId);
+    }
+    
+    // Notifications - only accessible by the user
+    match /notifications/{document} {
+      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
+    // Likes - authenticated users can create
+    match /likes/{document} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
+    // Stories - authenticated users can read and create
+    match /stories/{document} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+  }
+}
