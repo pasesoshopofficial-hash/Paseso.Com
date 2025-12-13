@@ -1,0 +1,32 @@
+{
+  "name": "paseso",
+  "version": "1.0.0",
+  "description": "PASESO - All-in-One Social Platform | Powered in Romania",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx serve -l 3000",
+    "start": "npx serve -l 3000",
+    "build": "echo 'No build step required'",
+    "deploy": "vercel --prod",
+    "firebase:deploy": "firebase deploy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/paseso/paseso-app"
+  },
+  "keywords": [
+    "social-media",
+    "social-platform",
+    "paseso",
+    "romania",
+    "creators",
+    "communities",
+    "pwa"
+  ],
+  "author": "PASESO Team <team@paseso.app>",
+  "license": "MIT",
+  "homepage": "https://paseso.app",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

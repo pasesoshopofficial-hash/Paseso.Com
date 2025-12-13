@@ -1,0 +1,47 @@
+# PASESO - Robots.txt
+# Powered in Romania
+
+# Allow all search engine crawlers
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://paseso.app/sitemap.xml
+
+# Disallow admin and private areas
+Disallow: /?page=admin
+Disallow: /?page=settings
+Disallow: /?page=messages
+Disallow: /?page=notifications
+
+# Allow crawlers to access static assets
+Allow: /css/
+Allow: /js/
+Allow: /img/
+Allow: /locales/
+
+# Disallow service worker direct access
+Disallow: /sw.js
+
+# Crawl delay (be nice to our servers)
+Crawl-delay: 1
+
+# Google specific
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+# Bing specific
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# Social media crawlers
+User-agent: facebookexternalhit
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: LinkedInBot
+Allow: /

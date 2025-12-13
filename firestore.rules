@@ -1,44 +1,136 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow public read access to posts
-    match /posts/{document} {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Anyone can read public user profiles
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      
+      // Users can only create their own profile
+      allow create: if isOwner(userId);
+      
+      // Users can update their own profile, admins can update any
+      allow update: if isOwner(userId) || isAdmin();
+      
+      // Only admins can delete users
+      allow delete: if isAdmin();
     }
     
-    // Allow public read access to users
-    match /users/{document} {
+    // Posts collection
+    match /posts/{postId} {
+      // Anyone can read public posts
+      allow read: if resource.data.visibility == 'public' || 
+                    isOwner(resource.data.userId) ||
+                    isAdmin();
+      
+      // Authenticated users can create posts
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid;
+      
+      // Users can update their own posts, admins can update any
+      allow update: if isOwner(resource.data.userId) || isAdmin();
+      
+      // Users can delete their own posts, admins can delete any
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+    
+    // Stories collection
+    match /stories/{storyId} {
+      // Anyone can read stories
       allow read: if true;
-      allow create: if request.auth != null && request.auth.uid == document;
-      allow update: if request.auth != null && request.auth.uid == document;
-      allow delete: if request.auth != null && request.auth.uid == document;
+      
+      // Authenticated users can create stories
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid;
+      
+      // Users can update/delete their own stories
+      allow update, delete: if isOwner(resource.data.userId);
     }
     
-    // Messages - only accessible by sender or recipient
-    match /messages/{document} {
-      allow read, write: if request.auth != null && 
-        (request.auth.uid == resource.data.senderId || request.auth.uid == resource.data.recipientId);
+    // Messages collection
+    match /messages/{messageId} {
+      // Users can read messages where they are sender or receiver
+      allow read: if isAuthenticated() && 
+                   (resource.data.fromId == request.auth.uid || 
+                    resource.data.toId == request.auth.uid);
+      
+      // Authenticated users can create messages
+      allow create: if isAuthenticated() && 
+                      request.resource.data.fromId == request.auth.uid;
+      
+      // Only receiver can update (mark as read)
+      allow update: if isAuthenticated() && 
+                      resource.data.toId == request.auth.uid;
+      
+      // Sender can delete
+      allow delete: if isOwner(resource.data.fromId);
     }
     
-    // Notifications - only accessible by the user
-    match /notifications/{document} {
-      allow read, write: if request.auth != null && request.auth.uid == resource.data.userId;
+    // Notifications collection
+    match /notifications/{notifId} {
+      // Users can read their own notifications
+      allow read: if isAuthenticated() && 
+                   resource.data.toId == request.auth.uid;
+      
+      // Authenticated users can create notifications
+      allow create: if isAuthenticated();
+      
+      // Users can update/delete their own notifications
+      allow update, delete: if isAuthenticated() && 
+                             resource.data.toId == request.auth.uid;
     }
     
-    // Likes - authenticated users can create
-    match /likes/{document} {
+    // Communities collection
+    match /communities/{communityId} {
+      // Anyone can read communities
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+      
+      // Authenticated users can create communities
+      allow create: if isAuthenticated();
+      
+      // Community owner or admin can update
+      allow update: if isOwner(resource.data.ownerId) || isAdmin();
+      
+      // Only admin can delete communities
+      allow delete: if isAdmin();
+      
+      // Community posts subcollection
+      match /posts/{postId} {
+        allow read: if true;
+        allow create: if isAuthenticated();
+        allow update, delete: if isOwner(resource.data.userId) || isAdmin();
+      }
     }
     
-    // Stories - authenticated users can read and create
-    match /stories/{document} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    // Marketplace items
+    match /marketplace/{itemId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update, delete: if isOwner(resource.data.sellerId) || isAdmin();
+    }
+    
+    // Reports collection (for content moderation)
+    match /reports/{reportId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAdmin();
     }
   }
 }
